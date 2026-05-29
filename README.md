@@ -1,22 +1,45 @@
-# Interpretable ML for the Punching-Shear Resistance of RC Flat Slabs
+# EuroCode 2 — Enhanced Punching-Shear Formula
 
-A **corrected, leak-free rebuild** of an ETH Zürich AEC SciML semester project
-(HS2021). It reconstructs and benchmarks the **Eurocode 2 / DIN EN 1992-1-1**
-empirical punching-shear formula against interpretable ML models, on 336
-published flat-slab punching tests (the Siburg compilation).
+An interpretable machine-learning study that benchmarks — and improves on — the
+**Eurocode 2 / DIN EN 1992-1-1** punching-shear design formula for reinforced-concrete
+flat slabs, using **336 published laboratory tests**. It delivers transparent,
+one-line equations that predict punching strength **more accurately than the code
+formula under honest validation**, with the methodological rigor (no data leakage,
+laboratory-grouped cross-validation, physical-unit error metrics) that data-driven
+attempts in this field usually skip.
 
-> This is a re-engineered version of the original ETH HS2021 study. The rebuild
-> fixes a target-definition flaw, data leakage, an un-interpretable metric, and the
-> absence of grouped cross-validation — corrections that **change the study's
-> headline conclusion**. See [What changed and why](#what-changed-and-why).
+## What is punching shear? (in plain terms)
 
-## The question
+Many modern buildings use **flat slabs** — flat concrete floors resting directly on
+columns, with no beams. It's economical and gives clean ceilings, but it creates a
+weak spot: right where a column meets the floor, the column can **punch straight
+through the slab**, like a pencil pushed through a sheet of paper. This *punching-shear*
+failure is dangerous because it is **sudden and brittle** — almost no sagging or
+cracking warns you first — and losing one column-to-slab connection can drop the
+floor onto the one below, triggering a **progressive ("pancake") collapse** of the
+whole building. It has caused real, fatal collapses.
+
+Engineers guard against it with a design formula — here, **Eurocode 2**. That formula
+is **empirical**: fitted to laboratory tests rather than derived from first
+principles, and its predictions scatter widely against reality, so the code builds in
+a large safety margin (on this dataset the measured strength averages **~2.3×** the
+code prediction). A big margin keeps structures safe, but also makes them **heavier,
+costlier, and less material-efficient** than they need to be.
+
+**The motivation:** can modern, *interpretable* machine learning, trained on the same
+laboratory tests, predict punching strength **more accurately** — shrinking that
+scatter and the wasteful margin — while staying a **transparent equation an engineer
+can read and check**, rather than an opaque black box? The short answer here: **yes,
+modestly** — and the winning models are simple closed-form formulas that even
+re-derive the physics already inside Eurocode 2.
+
+## The question, precisely
 
 The EC2 punching formula carries an apparent safety factor (the genuine mean of
-`V_test/V_Rd` on this data is **2.28**, not the ≈1.8 sometimes quoted) to absorb
-scatter between predicted and measured punching loads. Can interpretable ML
-trained on the same physical features shrink that scatter, and which features
-actually drive punching behaviour?
+`V_test/V_Rd` on this data is **2.28**) to absorb the scatter between predicted and
+measured punching strength. Can interpretable ML trained on the same physical
+features shrink that scatter, which features actually drive punching behaviour, and
+does any improvement survive **honest, laboratory-grouped** validation?
 
 ## Headline result
 
@@ -31,7 +54,7 @@ stories:
 held out (orange) the ranking collapses and EC2 leads — the apparent ML win was
 lab leakage.*
 
-**Random repeated 5×5 K-fold** (what the original study effectively used):
+**Random repeated 5×5 K-fold** (naive random splitting):
 
 | Model | CV RMSE [MPa] | R² |
 |---|---|---|
@@ -63,33 +86,32 @@ the flexible models (RBF, trees) degrade most. The apparent ML superiority under
 random splits was largely **lab leakage** — with many specimens per researcher, a
 random split lets flexible models memorize lab-specific offsets.
 
-**Where ML still adds value is interpretive.** On the corrected stress target,
-permutation importance shows the punching stress is driven by the **reinforcement
-ratio `rho_l`** and **concrete strength `fcm_cyl`** — the actual mechanical
-drivers — not by the effective depth `d` (which dominated only because the
-original study predicted absolute *load*). The categorical **column profile
-contributes essentially nothing**, so it could be dropped from future code
-formulas — the one original conclusion that survives the correction.
+**Where ML adds value is interpretive.** On the stress target, permutation
+importance shows the punching stress is driven by the **reinforcement ratio
+`rho_l`** and **concrete strength `fcm_cyl`** — the actual mechanical drivers —
+not by the effective depth `d` (which only appears dominant when one wrongly
+predicts absolute *load*). The categorical **column profile contributes essentially
+nothing**, so it could be dropped from future code formulas.
 
 ![Why model stress, not load](assets/fig_size_effect.png)
 
-*The original study's "`d` dominates" headline is an artifact of predicting absolute
-load (left): load is mechanically proportional to the control area `u₁·d`. The
-shear **stress** (right) — EC2's actual output — is barely correlated with `d`.*
+*Predicting absolute load (left) just relearns the size effect: load is mechanically
+proportional to the control area `u₁·d`. The shear **stress** (right) — EC2's actual
+output — is barely correlated with `d`. That is why this project models stress.*
 
-## What changed and why
+## Methodology — the choices that matter
 
-| # | Original study | Problem | Rebuild |
-|---|---|---|---|
-| 1 | Predicts absolute **load** `V_test` [MN] | Load ∝ control area `u₁·d`, so regressing on `d` relearns a trivial size effect (corr(d, load)=0.89 vs corr(d, **stress**)=−0.27). This produced the "`d` dominates" headline. | Predicts the **stress** `v = V/(u₁·d)` [MPa] — EC2's actual output. |
-| 2 | MSE on **MinMax-scaled** target ("per-mille") | Not an interpretable engineering error; ranking pooled different datasets/splits/scalers. | **RMSE/MAE/MAPE/R² in physical units (MPa)** on one dataset, shared folds. |
-| 3 | Scaler fit on **full data** before split; Ridge fit on the **test set**; SVR tuned on the **test set** | Data leakage → optimistic scores. | Every model is an sklearn **`Pipeline`** (scaler refit inside each fold); tuning is **nested CV** that never sees held-out data. |
-| 4 | Single random 70/30 split, reported to 0.1‰ | n=336 from 55 labs is **not i.i.d.**; one split treats it so (the original even stratified *by* researcher). | **Repeated K-fold + researcher-held-out GroupKFold**, with 95% CIs and paired Wilcoxon tests. |
-| 5 | "EC2 baseline" trusts a spreadsheet column; SF quoted as 1.8 | No formula implemented; SF mislabeled. | EC2 **implemented from raw inputs** (with `k≤2`, `ρ_l≤2%`, fck class caps), **validated** to reproduce the spreadsheet (median error 1e-7), `C_Rd,c` **refit per fold**; true SF reported (2.28). |
-| 6 | Notebooks don't run (`fcmcyl` vs `fcm,cyl`, `Umfang`, `V_adj` …) | Not reproducible. | Clean package + **executed** notebooks + a test suite; runs end-to-end from a fresh clone. |
+Honestly benchmarking an empirical formula is mostly about not fooling yourself.
+The design decisions that make the comparison trustworthy:
 
-A full written audit of the original notebooks (65 verified findings) motivated
-these changes.
+| Decision | Why it matters |
+|---|---|
+| **Model the shear stress** `v = V/(u₁·d)` [MPa], not the absolute load | Load is mechanically proportional to the control area `u₁·d`, so a load model mostly relearns a trivial size effect (corr(d, load)=0.89 vs corr(d, stress)=−0.27) instead of punching physics. |
+| **Report errors in physical units** (RMSE/MAE/MAPE/R² in MPa and MN) | A scaled or "per-mille" error is uninterpretable and silently incomparable across datasets and scalers. |
+| **Leak-free pipelines + nested cross-validation** | The scaler and every hyper-parameter are fit *inside* each training fold and never touch held-out data — otherwise the scores come out optimistic. |
+| **Laboratory-held-out (GroupKFold) validation** | The 336 tests come from 55 labs; a random split lets flexible models memorize lab-specific offsets. Holding whole labs out is the honest test of generalizing to a *new* experiment — and it is what separates a real gain from leakage. |
+| **Eurocode 2 implemented from first principles** (with the `k≤2`, `ρ_l≤2%` caps) and its coefficient `C_Rd,c` re-fit per fold | Makes the baseline auditable and a fair, like-for-like competitor — validated to reproduce the reference resistance to a median error of 1e-7. |
+| **Fully reproducible** — installable package, executed notebooks, a test suite | Every number and figure regenerates from a clean clone. |
 
 ## Can an *explainable* model beat EC2 — honestly? (research)
 
