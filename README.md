@@ -51,6 +51,16 @@ cracking warns you first), and losing one column-to-slab connection can drop the
 floor onto the one below, triggering a **progressive ("pancake") collapse** of the
 whole building. It has caused real, fatal collapses.
 
+</div>
+
+![Punching shear in a flat slab](assets/punching-shear-diagram.jpg)
+
+*An unreinforced flat slab: shear stress concentrates around the column on a roughly
+45-degree critical section (top); once it exceeds capacity, the column punches a
+truncated cone straight through the slab (bottom).*
+
+<div align="justify">
+
 Engineers guard against it with a design formula; here, **Eurocode 2**. That formula
 is **empirical**: fitted to laboratory tests rather than derived from first
 principles, and its predictions scatter widely against reality, so the code builds in
