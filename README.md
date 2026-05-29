@@ -211,7 +211,6 @@ sciml-punching-shear/
 ├── results/                   # generated CSV tables + PNG figures (git-ignored; run the scripts)
 ├── tests/                     # pytest sanity/guard suite
 ├── data/                      # Daten_Siburg.xlsx (raw, +Forscher), Data.xlsx (+control area)
-├── references/                # DIN EN 1992-1-1 (Eurocode 2) + Siburg 2014 thesis
 ├── pyproject.toml             # installable package + optional extras
 └── requirements.txt
 ```

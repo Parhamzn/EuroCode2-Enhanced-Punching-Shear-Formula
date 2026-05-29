@@ -49,10 +49,13 @@ researcher-held-out cross-validation, so the package merges `beta` from `Data.xl
 
 ## References for the data
 
-- C. Siburg (2014), *Zur einheitlichen Bemessung gegen Durchstanzen…* (doctoral
-  thesis, RWTH Aachen) — the source of the compiled test database and the critical
-  EC2 / fib MC2010 comparison; see `references/Siburg2014_PunchingShear_DesignFoundations.pdf`.
-- DIN EN 1992-1-1 (Eurocode 2) — see `references/`.
+- C. Siburg (2014), *Zur einheitlichen Bemessung gegen Durchstanzen in Flachdecken
+  und Fundamenten* (doctoral thesis, RWTH Aachen) — the source of the compiled test
+  database and the critical EC2 / fib MC2010 comparison.
+- DIN EN 1992-1-1: *Eurocode 2 — Design of concrete structures, Part 1-1* (CEN).
+
+(The standard and thesis PDFs are copyrighted and are not redistributed here; cite
+the references above directly.)
 
 The genuine EC2-vs-fib-MC2010 critical comparison is in the Siburg 2014 thesis
 (Chapter 2). (A previously bundled `Ricker_Siburg_EC2_fib_critical_review.pdf` was
