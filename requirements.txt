@@ -6,11 +6,12 @@ scikit-learn>=1.1
 scipy
 matplotlib
 
-# Notebooks
+# Notebooks + explainable-formula models
 jupyterlab
 nbformat
 nbconvert
 seaborn
+gplearn      # symbolic regression (notebook 07); needs the sklearn>=1.6 shim in punching_shear.symbolic
 
 # Tests
 pytest

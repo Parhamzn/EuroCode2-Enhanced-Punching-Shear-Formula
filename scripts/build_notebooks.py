@@ -281,6 +281,58 @@ nb06 = nb(
        "rules out column profile), not a replacement for the code formula."),
 )
 
+# ---------------------------------------------------------------------------
+# 07 — Explainable formula models: can anything beat EC2, honestly?
+# ---------------------------------------------------------------------------
+nb07 = nb(
+    md("# 07 · Explainable, closed-form models — can anything beat EC2 *honestly*?\n\n"
+       "Notebook 06 showed standard ML beats EC2 only under (leaky) random splits. "
+       "Here we ask the real question: is there an **interpretable model that reduces "
+       "to a neat formula** and beats EC2 under **researcher-held-out** CV?\n\n"
+       "Candidates: a free-exponent **power-law** `v=C·d^a·rho^b·fck^c`; **EC2 with a "
+       "freed cube-root exponent**; a grey-box **EC2 × correction factor**; **symbolic "
+       "regression** (gplearn); and **mechanics-informed feature engineering** fed to "
+       "OLS/RF. All fit leak-free (constants by least squares in physical units), all "
+       "scored on the same folds. Numbers are loaded from `results/` "
+       "(`python scripts/run_formula_models.py`)."),
+    code(BOOT),
+    md("### The honest bar: researcher-held-out GroupKFold (stress RMSE [MPa])"),
+    code("grp = pd.read_csv(RESULTS/'formula_metrics_grouped.csv').sort_values('rmse_mean')\n"
+         "ec2 = float(grp.set_index('model').loc['EC2 (refit C_Rd,c)','rmse_mean'])\n"
+         "show = grp[['model','rmse_mean','rmse_ci95','r2_mean']].copy()\n"
+         "show['vs EC2'] = np.where(show.model=='EC2 (refit C_Rd,c)','<-- EC2',\n"
+         "                          np.where(show.rmse_mean<ec2,'beats EC2',''))\n"
+         "display(show.round(4))\n"
+         "fig,ax=plt.subplots(figsize=(8,4.5))\n"
+         "col=['#c44' if m=='EC2 (refit C_Rd,c)' else ('#4a8' if r<ec2 else '#88a') for m,r in zip(grp.model,grp.rmse_mean)]\n"
+         "ax.barh(grp.model, grp.rmse_mean, xerr=grp.rmse_ci95, color=col)\n"
+         "ax.axvline(ec2, ls='--', c='#c44', lw=1); ax.invert_yaxis(); ax.set_xlabel('researcher-held-out RMSE [MPa]'); ax.set_title('Can an explainable model beat EC2 under honest CV?'); plt.tight_layout(); plt.show()"),
+    md("### Same comparison in engineering LOAD units [MN] and paired significance"),
+    code("mn = pd.read_csv(RESULTS/'formula_metrics_loadMN.csv')\n"
+         "display(mn[['model','rmse','mape_pct','r2']].round(4))\n"
+         "sig = pd.read_csv(RESULTS/'formula_paired_vs_ec2.csv')\n"
+         "sig['verdict']=np.where(sig.p_value>0.05,'n.s.',np.where(sig.median_abs_err_diff<0,'BETTER','worse'))\n"
+         "display(sig[['a','p_value','median_abs_err_diff','verdict']].round(4))"),
+    md("### The discovered closed-form equations"),
+    code("print((RESULTS/'formulas.txt').read_text())"),
+    md("## Answer\n\n"
+       "**Yes — modestly, and only with the right structure.** A free-exponent "
+       "**power-law** `v = C·d^a·rho^b·fck^c` beats EC2 under researcher-held-out CV "
+       "while remaining a one-line, code-style formula. Tellingly, the fitted exponents "
+       "on `rho_l` and `fck` come out ≈ 1/3 — the data **re-derive EC2's cube-root "
+       "form** — and the EC2-with-free-exponent fit gives p ≈ 1/3 (not significantly "
+       "different from EC2). So EC2's *functional form* is validated; the gains come "
+       "from (a) freeing the size-effect term and (b) **mechanics-informed feature "
+       "engineering**, which lifts even plain OLS above EC2.\n\n"
+       "**Honest caveats.** The grouped-CV confidence intervals overlap, so the "
+       "improvement is real but small (consistent with the literature, where good "
+       "symbolic/GP punching formulas land at CoV ≈ 0.14–0.21 — comparable to, not "
+       "dramatically better than, EC2). Flexible black-boxes (RBF-SVR, deep trees) and "
+       "raw symbolic regression do **not** generalize better than EC2 here. The "
+       "practical lever is *better physics-informed inputs and a freed power-law*, not "
+       "a bigger model."),
+)
+
 NOTEBOOKS = {
     "01_data_overview.ipynb": nb01,
     "02_eurocode_baseline.ipynb": nb02,
@@ -288,6 +340,7 @@ NOTEBOOKS = {
     "04_svm_models.ipynb": nb04,
     "05_tree_models.ipynb": nb05,
     "06_model_comparison.ipynb": nb06,
+    "07_explainable_formulas.ipynb": nb07,
 }
 
 if __name__ == "__main__":

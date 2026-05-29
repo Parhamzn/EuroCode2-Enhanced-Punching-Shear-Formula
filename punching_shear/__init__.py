@@ -26,8 +26,11 @@ from .evaluation import (
     cross_validate_models,
     paired_error_test,
     oof_predictions,
+    load_space_metrics,
 )
-from .models import build_models
+from .models import build_models, build_formula_models
+from .greybox import PowerLawRegressor, EC2FreeExponentRegressor
+from .features import MechanicsFeatures, engineer
 
 __all__ = [
     "Dataset",
@@ -44,5 +47,11 @@ __all__ = [
     "cross_validate_models",
     "paired_error_test",
     "oof_predictions",
+    "load_space_metrics",
     "build_models",
+    "build_formula_models",
+    "PowerLawRegressor",
+    "EC2FreeExponentRegressor",
+    "MechanicsFeatures",
+    "engineer",
 ]

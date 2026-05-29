@@ -150,3 +150,49 @@ def fit_full(model, X, y):
     est = clone(model)
     est.fit(X, y)
     return est
+
+
+def build_formula_models(seed: int = 19) -> dict:
+    """Explainable / closed-form models + feature-engineering variants.
+
+    Used to answer "can an interpretable, formula-yielding model beat EC2, and
+    does mechanics-informed feature engineering help?". Evaluated on the same folds
+    as everything else. Includes EC2, plain OLS and raw Random Forest as references.
+    """
+    from .eurocode import EC2Regressor
+    from .features import MechanicsFeatures
+    from .greybox import (
+        EC2CorrectionRegressor,
+        EC2FreeExponentRegressor,
+        PowerLawRegressor,
+    )
+    from .symbolic import SymbolicFormulaRegressor
+
+    models: dict[str, object] = {
+        # --- references (same as the main study) ---
+        "EC2 (refit C_Rd,c)": EC2Regressor(C_Rdc=None, apply_caps=True),
+        "OLS (raw)": Pipeline([("scale", StandardScaler()), ("lr", LinearRegression())]),
+        # Fixed (untuned) RF references: this set compares features & formulas, not RF tuning.
+        "Random Forest (raw)": Pipeline([
+            ("m", RandomForestRegressor(n_estimators=300, min_samples_leaf=3,
+                                        random_state=seed, n_jobs=-1))]),
+        # --- closed-form / interpretable candidates ---
+        "Power-law (d,rho,fck)": PowerLawRegressor(cols=("d", "rho_l", "fcm_cyl")),
+        "Power-law (+geometry)": PowerLawRegressor(
+            cols=("d", "rho_l", "fcm_cyl", "col_area", "u0_perim")),
+        "EC2 free-exponent": EC2FreeExponentRegressor(),
+        "EC2 x correction (grey-box)": EC2CorrectionRegressor(
+            corr_cols=("col_area", "u0_perim", "d")),
+        "Symbolic regression": SymbolicFormulaRegressor(
+            cols=("d", "rho_l", "fcm_cyl"), generations=20, population_size=2000,
+            parsimony_coefficient=0.005, random_state=seed),
+        # --- feature-engineering lever (mechanics-informed inputs) ---
+        "OLS + mechanics feats": Pipeline([
+            ("feat", MechanicsFeatures()), ("scale", StandardScaler()),
+            ("lr", LinearRegression())]),
+        "Random Forest + mechanics feats": Pipeline([
+            ("feat", MechanicsFeatures()),
+            ("m", RandomForestRegressor(n_estimators=300, min_samples_leaf=3,
+                                        random_state=seed, n_jobs=-1))]),
+    }
+    return models

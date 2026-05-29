@@ -127,6 +127,28 @@ def oof_predictions(models: Mapping[str, object], X, y, cv, groups=None
     return pd.DataFrame(preds)
 
 
+def load_space_metrics(oof: pd.DataFrame, beta, y_load) -> pd.DataFrame:
+    """Convert out-of-fold STRESS predictions to LOAD [MN] and score there.
+
+    The models predict stress v [MPa]; design cares about load V = v·(u1·d). This
+    reports RMSE/MAE/MAPE/R² in MN on the identical held-out predictions, so the
+    same comparison is available in engineering load units.
+    """
+    beta = np.asarray(beta, dtype=float)
+    y_load = np.asarray(y_load, dtype=float)
+    rows = []
+    for name in oof.columns:
+        if name == "y_true":
+            continue
+        v_pred = oof[name].to_numpy()
+        load_pred = v_pred * beta / 1.0e6
+        m = regression_metrics(y_load, load_pred)
+        m["model"] = name
+        rows.append(m)
+    cols = ["model", "rmse", "mae", "mape_pct", "r2", "ratio_mean", "ratio_std"]
+    return pd.DataFrame(rows)[cols].sort_values("rmse")
+
+
 def paired_error_test(oof: pd.DataFrame, model_a: str, model_b: str) -> dict:
     """Wilcoxon signed-rank test on per-sample absolute OOF errors (A vs B).
 

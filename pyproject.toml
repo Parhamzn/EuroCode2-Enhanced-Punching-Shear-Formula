@@ -19,7 +19,7 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-notebooks = ["jupyterlab", "nbformat", "nbconvert", "seaborn", "shap"]
+notebooks = ["jupyterlab", "nbformat", "nbconvert", "seaborn", "gplearn"]
 dev = ["pytest"]
 
 [tool.setuptools]

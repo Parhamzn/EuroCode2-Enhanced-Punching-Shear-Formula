@@ -155,8 +155,11 @@ def load_dataset(data_dir: str | Path | None = None) -> Dataset:
     fck = (raw["fcm_cyl"] - FCM_TO_FCK_OFFSET).clip(lower=FCK_FLOOR, upper=FCK_CAP)
     fck.name = "fck"
 
-    raw["v_test"] = y_stress
+    # 'beta' in Data.xlsx is mis-named: it is the EC2 control area u1*d, not the
+    # eccentricity factor. Expose it under a correct name (keep 'beta' for trace).
+    raw["control_area"] = beta
     raw["beta"] = beta
+    raw["v_test"] = y_stress
     raw["fck"] = fck
 
     return Dataset(

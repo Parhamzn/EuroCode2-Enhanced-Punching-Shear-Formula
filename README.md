@@ -80,6 +80,55 @@ formulas — the one original conclusion that survives the correction.
 A full written audit of the original notebooks (65 verified findings) motivated
 these changes.
 
+## Can an *explainable* model beat EC2 — honestly? (research)
+
+Since EC2 wins under researcher-held-out CV, the real question is whether an
+**interpretable model that reduces to a neat formula** can beat it on the *honest*
+bar. `scripts/run_formula_models.py` (notebook [`07`](notebooks/07_explainable_formulas.ipynb))
+evaluates grey-box, symbolic and feature-engineered models on the same
+researcher-held-out folds, and extracts the fitted equations.
+
+**Yes — modestly, and only with the right structure.** Three closed-form models
+beat EC2 under researcher-held-out CV at paired-Wilcoxon *p* < 0.01:
+
+| Model | grouped RMSE [MPa] | R² | vs EC2 (Wilcoxon) |
+|---|---|---|---|
+| **Power-law** `v = 1.38·d^(−0.19)·rho^0.33·fck^0.31` | **0.285** | **0.67** | **p = 2e-5** |
+| OLS + mechanics features | 0.299 | 0.64 | p = 1.6e-4 |
+| EC2 × correction (grey-box) | 0.301 | 0.63 | p = 1.9e-4 |
+| EC2 free-exponent `v=C·k·(100ρ_l·fck)^p`, p=0.31 | 0.308 | 0.61 | p = 0.36 (n.s.) |
+| **EC2 (refit C_Rd,c)** | 0.310 | 0.61 | — |
+| Random Forest (+features) | 0.302–0.314 | 0.59–0.63 | n.s. |
+| Symbolic regression (gplearn) | 0.347 | 0.46 | n.s. |
+
+Three findings worth keeping:
+
+1. **The data re-derive EC2's form.** The free-exponent power-law lands at
+   `rho^0.33 · fck^0.31` (≈ the EC2 cube root) and EC2-with-a-freed-exponent gives
+   `p = 0.31` — *not* significantly different from `1/3`. EC2's functional form is
+   **validated**; the gains come from freeing the size term (`d^(−0.19)` instead of
+   the saturating `k`) and from the multiplicative structure.
+2. **Structure beats flexibility.** Flexible black-boxes (RBF-SVR, deep trees, raw
+   Random Forest) do **not** out-generalize EC2 here; raw symbolic regression
+   (gplearn, which fits constants poorly) doesn't either. The wins are all
+   low-complexity, mechanics-anchored forms.
+3. **Feature engineering is the cheapest lever.** Feeding mechanics-informed inputs
+   (the EC2 composite `(100·ρ_l·fck)^(1/3)`, the size factor `k`, dimensionless
+   column compactness) lifts even plain OLS above EC2.
+
+**The improvement is real but small** — RMSE ≈ −8 %, R² +0.06, with overlapping
+CIs — consistent with the literature, where good symbolic/GP punching formulas
+land at CoV ≈ 0.14–0.21, comparable to (not dramatically better than) EC2. The
+honest takeaway: *a freed power-law with mechanics-informed features is a tidy,
+slightly-better-than-EC2 design equation; a bigger model is not the lever.*
+
+**Levers tried / recommended next:** ✓ stress target, ✓ mechanics-informed &
+dimensionless features, ✓ free-exponent power-law, ✓ grey-box EC2 correction
+factor, ✓ symbolic regression. Not yet: add aggregate size `dg` (CSCT crack-width
+proxy `d/(16+dg)`) with imputation; try **PySR** (Julia backend, optimises
+constants — stronger than gplearn) for the correction factor; a monotonic
+Explainable Boosting Machine for shape vetting.
+
 ## Repository layout
 
 ```
@@ -87,12 +136,16 @@ sciml-punching-shear/
 ├── punching_shear/            # the reusable, leak-free package
 │   ├── data.py                #   load/clean; stress target; researcher groups; fck caps
 │   ├── eurocode.py            #   EC2 stress formula (+caps), refit C_Rd,c, EC2Regressor
-│   ├── evaluation.py          #   physical-unit metrics, shared CV folds, paired tests
-│   └── models.py              #   11-model zoo as nested-CV pipelines
+│   ├── evaluation.py          #   physical-unit metrics (stress & load), shared folds, paired tests
+│   ├── models.py              #   11-model zoo + explainable/formula model set
+│   ├── features.py            #   mechanics-informed feature engineering
+│   ├── greybox.py             #   power-law, EC2 free-exponent, EC2 x correction (closed-form)
+│   └── symbolic.py            #   gplearn symbolic regression (+ sklearn>=1.6 shim)
 ├── scripts/
-│   ├── run_analysis.py        # end-to-end study -> results/ tables + figures  (~9 min)
+│   ├── run_analysis.py        # main study -> results/ tables + figures  (~9 min)
+│   ├── run_formula_models.py  # explainable/formula models vs EC2 -> results/formula_* (~3 min)
 │   └── build_notebooks.py     # regenerate the notebooks from the package
-├── notebooks/                 # clean, executed notebooks (01-06)
+├── notebooks/                 # clean, executed notebooks (01-07)
 │   └── legacy/                # original HS2021 notebooks (preserved, superseded)
 ├── results/                   # generated CSV tables + PNG figures (committed)
 ├── tests/                     # pytest sanity/guard suite
@@ -108,9 +161,10 @@ sciml-punching-shear/
 python -m venv .venv && source .venv/bin/activate
 pip install -e ".[notebooks,dev]"      # package + jupyter/seaborn + pytest
 
-pytest -q                              # 8 guard tests (~15 s)
-python scripts/run_analysis.py         # full study -> results/  (~9 min, nested CV)
-jupyter lab notebooks/                 # the narrative, 01 -> 06
+pytest -q                              # 13 guard tests (~25 s)
+python scripts/run_analysis.py         # main study -> results/  (~9 min, nested CV)
+python scripts/run_formula_models.py   # explainable-formula study -> results/  (~3 min)
+jupyter lab notebooks/                 # the narrative, 01 -> 07
 ```
 
 The package resolves data paths relative to itself, so notebooks and scripts work
