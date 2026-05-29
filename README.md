@@ -355,32 +355,15 @@ validation.
 
 </div>
 
-<table>
-<tr>
-<th align="center">Eurocode 2 &nbsp;(refit baseline)</th>
-<th align="center">Enhanced &nbsp;(free-exponent power-law)</th>
-</tr>
-<tr>
-<td align="center">
-
-$$v_{Rd,c} = C_{Rd,c}\,\Bigl(1+\sqrt{\tfrac{200}{d}}\Bigr)\bigl(100\,\rho_l\,f_{ck}\bigr)^{1/3}$$
-
-</td>
-<td align="center">
-
-$$v = 1.38\;d^{-0.19}\;\rho_l^{\,0.33}\;f_{ck}^{\,0.31}$$
-
-</td>
-</tr>
-<tr>
-<td align="center">size effect via the capped factor $k\le 2$;<br>fixed cube-root exponent $\tfrac{1}{3}$</td>
-<td align="center">size effect as a free power $d^{-0.19}$;<br>exponents fit from data $\approx\tfrac{1}{3}$</td>
-</tr>
-<tr>
-<td align="center">honest CV: &nbsp;$R^2 = 0.61$</td>
-<td align="center">honest CV: &nbsp;<b>$R^2 = 0.67$</b> &nbsp;•&nbsp; $p = 2\times10^{-5}$ vs EC2</td>
-</tr>
-</table>
+$$
+\begin{array}{c|c}
+\textbf{Eurocode 2 (baseline)} & \textbf{Enhanced (this work)} \\
+\hline
+v_{Rd,c} = C_{Rd,c}\,k\,\bigl(100\,\rho_l\,f_{ck}\bigr)^{1/3} & v = 1.38\,d^{-0.19}\,\rho_l^{0.33}\,f_{ck}^{0.31} \\
+k = 1+\sqrt{200/d}\le 2,\ \text{fixed } \tfrac{1}{3} & \text{free exponents } 0.33,\,0.31 \approx \tfrac{1}{3} \\
+\text{honest CV: } R^2 = 0.61 & \text{honest CV: } R^2 = 0.67\ (p = 2\times10^{-5})
+\end{array}
+$$
 
 ## License
 
