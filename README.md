@@ -5,9 +5,8 @@ A **corrected, leak-free rebuild** of an ETH Zürich AEC SciML semester project
 empirical punching-shear formula against interpretable ML models, on 336
 published flat-slab punching tests (the Siburg compilation).
 
-> This is a re-engineered version of the original study. The original notebooks
-> are preserved under [`notebooks/legacy/`](notebooks/legacy/). The rebuild fixes
-> a target-definition flaw, data leakage, an un-interpretable metric, and the
+> This is a re-engineered version of the original ETH HS2021 study. The rebuild
+> fixes a target-definition flaw, data leakage, an un-interpretable metric, and the
 > absence of grouped cross-validation — corrections that **change the study's
 > headline conclusion**. See [What changed and why](#what-changed-and-why).
 
@@ -146,11 +145,10 @@ sciml-punching-shear/
 │   ├── run_formula_models.py  # explainable/formula models vs EC2 -> results/formula_* (~3 min)
 │   └── build_notebooks.py     # regenerate the notebooks from the package
 ├── notebooks/                 # clean, executed notebooks (01-07)
-│   └── legacy/                # original HS2021 notebooks (preserved, superseded)
 ├── results/                   # generated CSV tables + PNG figures (committed)
 ├── tests/                     # pytest sanity/guard suite
 ├── data/                      # Daten_Siburg.xlsx (raw, +Forscher), Data.xlsx (+control area)
-├── references/, docs/
+├── references/                # DIN EN 1992-1-1 (Eurocode 2) + Siburg 2014 thesis
 ├── pyproject.toml             # installable package + optional extras
 └── requirements.txt
 ```

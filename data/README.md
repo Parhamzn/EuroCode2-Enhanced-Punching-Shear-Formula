@@ -54,7 +54,7 @@ researcher-held-out cross-validation, so the package merges `beta` from `Data.xl
   EC2 / fib MC2010 comparison; see `references/Siburg2014_PunchingShear_DesignFoundations.pdf`.
 - DIN EN 1992-1-1 (Eurocode 2) — see `references/`.
 
-> **Note:** the file `references/Ricker_Siburg_EC2_fib_critical_review.pdf` is
-> **mis-named** — its actual content is an unrelated 2021 paper on explainable AI in
-> structural engineering, not the Ricker/Siburg review. The genuine EC2-vs-MC2010
-> critique is in the Siburg 2014 thesis (Chapter 2).
+The genuine EC2-vs-fib-MC2010 critical comparison is in the Siburg 2014 thesis
+(Chapter 2). (A previously bundled `Ricker_Siburg_EC2_fib_critical_review.pdf` was
+removed: it was mis-named and actually contained an unrelated 2021 paper on
+explainable AI, not the Ricker/Siburg review.)
