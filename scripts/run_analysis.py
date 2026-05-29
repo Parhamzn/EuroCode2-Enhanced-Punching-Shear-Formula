@@ -33,6 +33,7 @@ from punching_shear import (
     build_models,
     cross_validate_models,
     load_dataset,
+    load_space_metrics,
     make_cv,
     oof_predictions,
     paired_error_test,
@@ -120,6 +121,18 @@ def main() -> None:
     for _, r in sig[sig["a"] == best].iterrows():
         verdict = "n.s." if r["p_value"] > 0.05 else ("BETTER" if r["median_abs_err_diff"] < 0 else "worse")
         print(f"  {best} vs {r['b']:22s} p={r['p_value']:.3g}  ({verdict})")
+
+    # ---- 4b. Load-space (MN) metrics on researcher-held-out OOF ----------------------
+    # The models predict stress [MPa]; design cares about load V = v*(u1*d). Report the
+    # same comparison in MN on honest (researcher-held-out) out-of-fold predictions.
+    cv_oof_grp = make_cv("group", n_splits=5)
+    oof_grp = oof_predictions(models, ds.X, ds.y_stress, cv_oof_grp, groups=ds.groups)
+    mn = load_space_metrics(oof_grp, ds.beta, ds.y_load)
+    mn.to_csv(RESULTS / "metrics_loadMN.csv", index=False)
+    print("\nLoad-space metrics [MN] (researcher-held-out OOF; design-relevant units):")
+    for _, r in mn.iterrows():
+        print(f"  {r['model']:22s} RMSE={r['rmse']:.4f} MN  MAE={r['mae']:.4f}  "
+              f"MAPE={r['mape_pct']:.1f}%  R2={r['r2']:+.3f}")
 
     # ---- 5. Permutation feature importance (best ML model, on stress) ----------------
     ml_models = {k: v for k, v in models.items() if k != "EC2 (refit C_Rd,c)"}
