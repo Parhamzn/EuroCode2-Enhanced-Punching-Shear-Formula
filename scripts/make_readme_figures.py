@@ -29,12 +29,31 @@ REPO = Path(__file__).resolve().parent.parent
 RESULTS = REPO / "results"
 ASSETS = REPO / "assets"
 
+# --- cohesive, modern, colour-blind-friendly palette -------------------------
+OPTIMISTIC = "#e9c46a"   # muted gold  — random K-fold (optimistic)
+HONEST = "#264653"       # deep teal   — researcher-held-out (honest)
+EC2_LINE = "#e76f51"     # coral       — EC2 reference line / baseline bar
+WIN = "#2a9d8f"          # teal-green  — significantly beats EC2
+NS = "#adb5bd"           # muted grey  — not significant
+INK = "#222222"
+GRID = "#9aa3ab"
+
 plt.rcParams.update({
-    "figure.dpi": 140, "savefig.dpi": 140, "font.size": 11,
-    "axes.titlesize": 12, "axes.titleweight": "bold", "axes.grid": True,
-    "grid.alpha": 0.25, "axes.spines.top": False, "axes.spines.right": False,
+    "figure.dpi": 150, "savefig.dpi": 150, "savefig.bbox": "tight",
+    "font.family": "sans-serif",
+    "font.sans-serif": ["Helvetica Neue", "Helvetica", "Arial", "Inter", "DejaVu Sans"],
+    "font.size": 11.5,
+    "axes.titlesize": 14, "axes.titleweight": "semibold", "axes.titlecolor": INK,
+    "axes.labelsize": 11.5, "axes.labelcolor": INK, "axes.labelweight": "medium",
+    "axes.edgecolor": "#555", "axes.linewidth": 0.8,
+    "axes.grid": True, "axes.axisbelow": True,
+    "grid.color": GRID, "grid.alpha": 0.22, "grid.linewidth": 0.8,
+    "axes.spines.top": False, "axes.spines.right": False,
+    "axes.spines.left": False,
+    "xtick.color": "#333", "ytick.color": "#333", "text.color": INK,
+    "ytick.left": False,
 })
-EC2_C, ML_C, WIN_C, NS_C = "#d1495b", "#3a7ca5", "#2a9d4a", "#9aa0a6"
+EBAR = dict(ecolor="#6b6b6b", elinewidth=1.1, capsize=2.6, capthick=1.1)
 
 
 def short(name: str) -> str:
@@ -43,74 +62,92 @@ def short(name: str) -> str:
             .replace(" (L2)", "").replace(" (L3)", "").replace(" feats", ""))
 
 
+def _top_legend(ax, handles=None, labels=None, ncol=3):
+    """Horizontal legend above the axes (never overlaps the bars)."""
+    kw = dict(loc="lower center", bbox_to_anchor=(0.5, 1.0), ncol=ncol,
+              frameon=False, handlelength=1.4, columnspacing=1.8, fontsize=9.5)
+    if handles is not None:
+        ax.legend(handles, labels, **kw)
+    else:
+        ax.legend(**kw)
+
+
 def fig_leakage():
     """Hero: random vs researcher-held-out CV — the leakage lesson."""
+    from matplotlib.lines import Line2D
+    from matplotlib.patches import Patch
     r = pd.read_csv(RESULTS / "metrics_random_kfold.csv").set_index("model")
     g = pd.read_csv(RESULTS / "metrics_grouped_kfold.csv").set_index("model")
     keep = [m for m in r.index if m != "SVR (poly-3)"]          # poly-3 overfits, off-scale
     order = r.loc[keep, "rmse_mean"].sort_values().index
-    y = np.arange(len(order)); h = 0.4
-    fig, ax = plt.subplots(figsize=(8.5, 5.2))
+    y = np.arange(len(order)); h = 0.38
+    fig, ax = plt.subplots(figsize=(9, 5.6))
     ax.barh(y + h/2, r.loc[order, "rmse_mean"], h, xerr=r.loc[order, "rmse_ci95"],
-            color=ML_C, label="random K-fold (optimistic)")
+            color=OPTIMISTIC, error_kw=EBAR, zorder=3)
     ax.barh(y - h/2, g.loc[order, "rmse_mean"], h, xerr=g.loc[order, "rmse_ci95"],
-            color="#e0a458", label="researcher-held-out (honest)")
-    ax.axvline(g.loc["EC2 (refit C_Rd,c)", "rmse_mean"], color=EC2_C, ls="--", lw=1.6,
-               label="EC2 (honest)")
-    ax.set_yticks(y); ax.set_yticklabels([short(m) for m in order]); ax.invert_yaxis()
-    ax.set_xlabel("CV RMSE on punching stress  [MPa]   (lower = better)")
-    ax.set_title("ML 'beats' Eurocode 2 only under leaky random splits")
-    ax.legend(loc="lower right", framealpha=0.9, fontsize=9)
-    fig.text(0.5, 0.015, "Random splits let flexible models memorise lab-specific signal; with whole "
-             "labs held out the ranking collapses and EC2 leads.",
-             ha="center", va="bottom", fontsize=8.5, color="#555")
-    fig.tight_layout(rect=[0, 0.05, 1, 1]); fig.savefig(ASSETS / "fig_leakage.png"); plt.close(fig)
+            color=HONEST, error_kw=EBAR, zorder=3)
+    ec2_g = g.loc["EC2 (refit C_Rd,c)", "rmse_mean"]
+    ax.axvline(ec2_g, color=EC2_LINE, ls="--", lw=1.8, zorder=2)
+    ax.set_yticks(y); ax.set_yticklabels([short(m) for m in order])
+    ax.invert_yaxis(); ax.set_xlim(0, None); ax.margins(x=0.02)
+    ax.set_xlabel("cross-validated RMSE on punching stress  [MPa]   (lower is better)")
+    ax.set_title("ML “beats” Eurocode 2 only under leaky random splits", pad=34)
+    handles = [Patch(color=OPTIMISTIC, label="random K-fold (optimistic)"),
+               Patch(color=HONEST, label="researcher-held-out (honest)"),
+               Line2D([0], [0], color=EC2_LINE, ls="--", lw=1.8, label="Eurocode 2 (honest)")]
+    _top_legend(ax, handles, [h.get_label() for h in handles], ncol=3)
+    fig.text(0.5, -0.02, "Random splits let flexible models memorise lab-specific signal; with whole "
+             "laboratories held out the ranking collapses and Eurocode 2 leads.",
+             ha="center", va="top", fontsize=9, color="#666", style="italic")
+    fig.savefig(ASSETS / "fig_leakage.png"); plt.close(fig)
 
 
 def fig_size_effect(ds):
     """Why we model stress, not load."""
-    fig, ax = plt.subplots(1, 2, figsize=(10, 4.3))
+    fig, ax = plt.subplots(1, 2, figsize=(10, 4.6), layout="constrained")
     rl = np.corrcoef(ds.X["d"], ds.y_load)[0, 1]
     rs = np.corrcoef(ds.X["d"], ds.y_stress)[0, 1]
-    ax[0].scatter(ds.X["d"], ds.y_load, s=16, alpha=.55, color=EC2_C, edgecolor="none")
-    ax[0].set(title=f"WRONG target: load  (r = {rl:+.2f})",
-              xlabel="effective depth  d  [mm]", ylabel="failure load  V_test  [MN]")
-    ax[1].scatter(ds.X["d"], ds.y_stress, s=16, alpha=.55, color=ML_C, edgecolor="none")
-    ax[1].set(title=f"RIGHT target: stress  (r = {rs:+.2f})",
-              xlabel="effective depth  d  [mm]", ylabel="punching stress  v  [MPa]")
+    for a in ax:
+        a.spines["left"].set_visible(True)
+    ax[0].scatter(ds.X["d"], ds.y_load, s=20, alpha=.6, color=EC2_LINE, edgecolor="none")
+    ax[0].set_title(f"WRONG target — load   (r = {rl:+.2f})", pad=8)
+    ax[0].set(xlabel="effective depth  d  [mm]", ylabel="failure load  V_test  [MN]")
+    ax[1].scatter(ds.X["d"], ds.y_stress, s=20, alpha=.6, color=WIN, edgecolor="none")
+    ax[1].set_title(f"RIGHT target — stress   (r = {rs:+.2f})", pad=8)
+    ax[1].set(xlabel="effective depth  d  [mm]", ylabel="punching stress  v  [MPa]")
     fig.suptitle("Predicting absolute load just relearns the size effect",
-                 fontsize=12, fontweight="bold")
-    fig.tight_layout(); fig.savefig(ASSETS / "fig_size_effect.png"); plt.close(fig)
+                 fontsize=14, fontweight="semibold")
+    fig.savefig(ASSETS / "fig_size_effect.png"); plt.close(fig)
 
 
 def fig_explainable():
-    """Explainable formula models vs EC2 (researcher-held-out R²), winners highlighted."""
+    """Explainable formula models vs EC2 (researcher-held-out), coloured by significance."""
+    from matplotlib.patches import Patch
     g = pd.read_csv(RESULTS / "formula_metrics_grouped.csv").set_index("model")
     ec2 = g.loc["EC2 (refit C_Rd,c)", "rmse_mean"]
-    # Significance vs EC2 from the paired Wilcoxon (grouped OOF), NOT just RMSE order.
     sig = pd.read_csv(RESULTS / "formula_paired_vs_ec2.csv").set_index("a")
     beats = {m: (sig.loc[m, "p_value"] < 0.05 and sig.loc[m, "median_abs_err_diff"] < 0)
              for m in sig.index}
     keep = [m for m in g.index if m != "Symbolic regression"]
     order = g.loc[keep, "rmse_mean"].sort_values().index
-    colors = [EC2_C if m == "EC2 (refit C_Rd,c)" else
-              (WIN_C if beats.get(m, False) else NS_C) for m in order]
-    from matplotlib.patches import Patch
-    fig, ax = plt.subplots(figsize=(8.5, 5.0))
+    colors = [EC2_LINE if m == "EC2 (refit C_Rd,c)" else
+              (WIN if beats.get(m, False) else NS) for m in order]
+    fig, ax = plt.subplots(figsize=(9, 5.4))
     ax.barh([short(m) for m in order], g.loc[order, "rmse_mean"],
-            xerr=g.loc[order, "rmse_ci95"], color=colors)
-    ax.axvline(ec2, color=EC2_C, ls="--", lw=1.4)
-    ax.invert_yaxis()
-    ax.set_xlabel("researcher-held-out RMSE on stress  [MPa]")
-    ax.set_title("Explainable, closed-form models vs Eurocode 2")
-    ax.legend(handles=[Patch(color=WIN_C, label="significantly beats EC2 (p<0.05)"),
-                       Patch(color=EC2_C, label="EC2 baseline"),
-                       Patch(color=NS_C, label="not significant")],
-              loc="lower right", framealpha=0.9, fontsize=9)
-    fig.text(0.5, 0.015, r"best explainable formula:  "
-             r"$v = 1.38\,d^{-0.19}\,\rho_l^{0.33}\,f_{ck}^{0.31}$  [MPa]   (p = 2e-5 vs EC2)",
-             ha="center", va="bottom", fontsize=10, color=WIN_C)
-    fig.tight_layout(rect=[0, 0.05, 1, 1]); fig.savefig(ASSETS / "fig_explainable.png"); plt.close(fig)
+            xerr=g.loc[order, "rmse_ci95"], color=colors, error_kw=EBAR, zorder=3)
+    ax.axvline(ec2, color=EC2_LINE, ls="--", lw=1.6, zorder=2)
+    ax.invert_yaxis(); ax.set_xlim(0, None); ax.margins(x=0.02)
+    ax.set_xlabel("researcher-held-out RMSE on punching stress  [MPa]")
+    ax.set_title("Explainable, closed-form models vs Eurocode 2", pad=34)
+    handles = [Patch(color=WIN, label="significantly beats EC2 (p < 0.05)"),
+               Patch(color=EC2_LINE, label="Eurocode 2 baseline"),
+               Patch(color=NS, label="not significant")]
+    _top_legend(ax, handles, [h.get_label() for h in handles], ncol=3)
+    fig.text(0.5, -0.02, r"best explainable formula:   "
+             r"$v = 1.38\,d^{-0.19}\,\rho_l^{0.33}\,f_{ck}^{0.31}$  [MPa]   "
+             r"($p = 2\times10^{-5}$ vs EC2)",
+             ha="center", va="top", fontsize=10.5, color=WIN)
+    fig.savefig(ASSETS / "fig_explainable.png"); plt.close(fig)
 
 
 def fig_pred_vs_measured(ds):
@@ -119,17 +156,20 @@ def fig_pred_vs_measured(ds):
     pl = [c for c in oof.columns if c.startswith("Power-law (d")][0]
     ec = [c for c in oof.columns if c.startswith("EC2 (refit")][0]
     lim = [0, float(oof["y_true"].max()) * 1.05]
-    fig, ax = plt.subplots(1, 2, figsize=(10, 5), sharex=True, sharey=True)
-    for a, col, name, c in [(ax[0], pl, "Power-law (winner)", WIN_C),
-                            (ax[1], ec, "Eurocode 2", EC2_C)]:
-        a.scatter(oof["y_true"], oof[col], s=16, alpha=.55, color=c, edgecolor="none")
-        a.plot(lim, lim, "k-", lw=1.3)
+    fig, ax = plt.subplots(1, 2, figsize=(10, 5.1), sharex=True, sharey=True,
+                           layout="constrained")
+    for a, col, name, c in [(ax[0], pl, "Power-law (best explainable)", WIN),
+                            (ax[1], ec, "Eurocode 2", EC2_LINE)]:
+        a.spines["left"].set_visible(True)
+        a.scatter(oof["y_true"], oof[col], s=20, alpha=.6, color=c, edgecolor="none", zorder=3)
+        a.plot(lim, lim, color="#444", lw=1.3, zorder=2)
         r2 = 1 - np.sum((oof[col]-oof["y_true"])**2)/np.sum((oof["y_true"]-oof["y_true"].mean())**2)
-        a.set(title=f"{name}   (OOF R² = {r2:.2f})", xlim=lim, ylim=lim,
-              xlabel="measured stress  [MPa]")
+        a.set_title(f"{name}   (OOF R² = {r2:.2f})", pad=8)
+        a.set(xlim=lim, ylim=lim, xlabel="measured stress  [MPa]")
     ax[0].set_ylabel("predicted stress  [MPa]")
-    fig.suptitle("Out-of-fold predictions (researcher-held-out)", fontweight="bold")
-    fig.tight_layout(); fig.savefig(ASSETS / "fig_pred_vs_measured.png"); plt.close(fig)
+    fig.suptitle("Out-of-fold predictions (researcher-held-out)",
+                 fontsize=14, fontweight="semibold")
+    fig.savefig(ASSETS / "fig_pred_vs_measured.png"); plt.close(fig)
 
 
 def main():

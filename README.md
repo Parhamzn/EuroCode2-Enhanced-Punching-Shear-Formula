@@ -343,6 +343,45 @@ EC2 baseline formula and its parameters are defined in
 - Broaden the dataset beyond interior columns (edge/corner, footings) so the
   grouped-CV generalization test spans the cases EC2 actually differentiates.
 
+## Eurocode 2 vs. the enhanced formula
+
+<div align="justify">
+
+Both are one-line, engineer-checkable equations for the punching **stress** [MPa].
+The data-driven fit **re-derives** Eurocode 2's cube-root dependence on $\rho_l$ and
+$f_{ck}$ (the fitted exponents land at $0.33$ and $0.31\approx\tfrac{1}{3}$) and only
+reshapes the size term — yet it generalizes better under laboratory-held-out
+validation.
+
+</div>
+
+<table>
+<tr>
+<th align="center">Eurocode 2 &nbsp;(refit baseline)</th>
+<th align="center">Enhanced &nbsp;(free-exponent power-law)</th>
+</tr>
+<tr>
+<td align="center">
+
+$$v_{Rd,c} = C_{Rd,c}\,\Bigl(1+\sqrt{\tfrac{200}{d}}\Bigr)\bigl(100\,\rho_l\,f_{ck}\bigr)^{1/3}$$
+
+</td>
+<td align="center">
+
+$$v = 1.38\;d^{-0.19}\;\rho_l^{\,0.33}\;f_{ck}^{\,0.31}$$
+
+</td>
+</tr>
+<tr>
+<td align="center">size effect via the capped factor $k\le 2$;<br>fixed cube-root exponent $\tfrac{1}{3}$</td>
+<td align="center">size effect as a free power $d^{-0.19}$;<br>exponents fit from data $\approx\tfrac{1}{3}$</td>
+</tr>
+<tr>
+<td align="center">honest CV: &nbsp;$R^2 = 0.61$</td>
+<td align="center">honest CV: &nbsp;<b>$R^2 = 0.67$</b> &nbsp;•&nbsp; $p = 2\times10^{-5}$ vs EC2</td>
+</tr>
+</table>
+
 ## License
 
 MIT — see [`LICENSE`](LICENSE).
