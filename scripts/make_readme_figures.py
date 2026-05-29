@@ -144,7 +144,7 @@ def fig_explainable():
                Patch(color=NS, label="not significant")]
     _top_legend(ax, handles, [h.get_label() for h in handles], ncol=3)
     fig.text(0.5, -0.02, r"best explainable formula:   "
-             r"$v = 1.38\,d^{-0.19}\,\rho_l^{0.33}\,f_{ck}^{0.31}$  [MPa]   "
+             r"$v = 1.38 \cdot d^{-0.19} \cdot \rho_l^{0.33} \cdot f_{ck}^{0.31}$  [MPa]   "
              r"($p = 2\times10^{-5}$ vs EC2)",
              ha="center", va="top", fontsize=10.5, color=WIN)
     fig.savefig(ASSETS / "fig_explainable.png"); plt.close(fig)

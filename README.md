@@ -23,7 +23,7 @@ attempts in this field usually skip.
 - **What does work:** a tidy, free-exponent **power-law** (plus a couple of
   physics-anchored variants) that **modestly but significantly** beats Eurocode 2 on
   the honest test, and even re-derives the code's cube-root structure.
-- **Deliverable:** $v = 1.38\,d^{-0.19}\,\rho_l^{0.33}\,f_{ck}^{0.31}$ [MPa], lifting
+- **Deliverable:** $v = 1.38\cdot d^{-0.19}\cdot \rho_l^{0.33}\cdot f_{ck}^{0.31}$ [MPa], lifting
   honest-CV R² from 0.61 to 0.67.
 
 ![Random vs researcher-held-out cross-validation](assets/fig_leakage.png)
@@ -72,7 +72,7 @@ section around the column:
 </div>
 
 $$
-v_{Rd,c} \;=\; C_{Rd,c}\,\,k\,\bigl(100\,\rho_{l}\,f_{ck}\bigr)^{1/3} \;+\; k_{1}\,\sigma_{cp}
+v_{Rd,c} = C_{Rd,c}\cdot k\cdot\bigl(100\cdot\rho_{l}\cdot f_{ck}\bigr)^{1/3} + k_{1}\cdot\sigma_{cp}
 $$
 
 | symbol | meaning | value / notes |
@@ -82,7 +82,7 @@ $$
 | $k = 1+\sqrt{200/d}\le 2.0$ | size-effect factor ($d$ in mm) | deeper slabs are proportionally weaker |
 | $\rho_{l}\le 0.02$ | longitudinal (flexural) reinforcement ratio | capped at 2 % |
 | $f_{ck}$ | characteristic concrete cylinder strength [MPa] | here $f_{ck}=f_{cm}-8$, clamped to classes C12/15 to C90/105 |
-| $k_{1}\,\sigma_{cp}$ | in-plane (prestress/normal) stress term, $k_{1}=0.1$ | **dropped**: no $\sigma_{cp}$ data in the dataset |
+| $k_1\sigma_{cp}$ | in-plane (prestress/normal) stress term, $k_1=0.1$ | **dropped**: no $\sigma_{cp}$ data in the dataset |
 
 <div align="justify">
 
@@ -162,7 +162,7 @@ right structure.** Three closed-form models beat EC2 at paired-Wilcoxon $p < 0.0
 
 | Model | grouped RMSE [MPa] | R² | vs EC2 |
 |---|---|---|---|
-| **Power-law** $v = 1.38\,d^{-0.19}\rho_l^{0.33}f_{ck}^{0.31}$ | **0.285** | **0.67** | $p = 2\times10^{-5}$ |
+| **Power-law** $v = 1.38\cdot d^{-0.19}\cdot \rho_l^{0.33}\cdot f_{ck}^{0.31}$ | **0.285** | **0.67** | $p = 2\times10^{-5}$ |
 | OLS + mechanics features | 0.299 | 0.64 | $p = 1.6\times10^{-4}$ |
 | EC2 x correction (grey-box) | 0.301 | 0.63 | $p = 1.9\times10^{-4}$ |
 | EC2 (refit $C_{Rd,c}$) | 0.310 | 0.61 | baseline |
@@ -174,8 +174,8 @@ $$
 \begin{array}{c|c}
 \textbf{Eurocode 2 (baseline)} & \textbf{Enhanced (this work)} \\
 \hline
-v_{Rd,c} = C_{Rd,c}\,k\,\bigl(100\,\rho_l\,f_{ck}\bigr)^{1/3} & v = 1.38\,d^{-0.19}\,\rho_l^{0.33}\,f_{ck}^{0.31} \\
-k = 1+\sqrt{200/d}\le 2,\ \text{fixed } \tfrac{1}{3} & \text{free exponents } 0.33,\,0.31 \approx \tfrac{1}{3} \\
+v_{Rd,c} = C_{Rd,c}\cdot k\cdot\bigl(100\cdot\rho_l\cdot f_{ck}\bigr)^{1/3} & v = 1.38\cdot d^{-0.19}\cdot\rho_l^{0.33}\cdot f_{ck}^{0.31} \\
+k = 1+\sqrt{200/d}\le 2,\ \text{fixed } \tfrac{1}{3} & \text{free exponents } 0.33,\ 0.31 \approx \tfrac{1}{3} \\
 \text{honest CV: } R^2 = 0.61 & \text{honest CV: } R^2 = 0.67\ (p = 2\times10^{-5})
 \end{array}
 $$
@@ -205,7 +205,7 @@ Four additional levers, each on the researcher-held-out bar (paired Wilcoxon vs 
 
 | Lever | What | Honest verdict | Closed form? |
 |---|---|---|---|
-| **CSCT form** | $v = C\,(100\rho_l f_{ck})^p / (1 + \lambda\,d/(16+dg))$ (size via aggregate denominator) | **beats EC2** on the `dg`-complete subset ($p = 0.02$) | yes, 1 line |
+| **CSCT form** | $v = C\cdot(100\rho_l f_{ck})^{p} / (1 + \lambda\cdot d / (16+dg))$ (size via aggregate denominator) | **beats EC2** on the `dg`-complete subset ($p = 0.02$) | yes, 1 line |
 | **PySR x EC2 correction** | $v = v_{EC2}\cdot[14.74/d + 0.851]$ (correction found by PySR) | **beats EC2** ($p = 0.011$) | yes, 1 line |
 | aggregate size `dg` as a raw feature | add `dg` or `d/(16+dg)` to the power-law | no gain | (no) |
 | glass-box EBM / monotone GAM | additive shape functions | not significant | additive curves |
@@ -239,7 +239,7 @@ design decisions that make the comparison trustworthy:
 | **Report errors in physical units** (RMSE/MAE/MAPE/R² in MPa and MN) | A scaled or "per-mille" error is uninterpretable and silently incomparable across datasets and scalers. |
 | **Leak-free pipelines + nested cross-validation** | The scaler and every hyper-parameter are fit *inside* each training fold and never touch held-out data; otherwise the scores come out optimistic. |
 | **Laboratory-held-out (GroupKFold) validation** | The 336 tests come from 55 labs; a random split lets flexible models memorize lab-specific offsets. Holding whole labs out is the honest test of generalizing to a *new* experiment. |
-| **Eurocode 2 implemented from first principles** (with the $k\le2$, $\rho_l\le2\%$ caps) and its coefficient re-fit per fold | Makes the baseline auditable and a fair, like-for-like competitor; validated to reproduce the reference resistance to a median error of $10^{-7}$. |
+| **Eurocode 2 implemented from first principles** (with the $k\le2$, $\rho_l\le0.02$ caps) and its coefficient re-fit per fold | Makes the baseline auditable and a fair, like-for-like competitor; validated to reproduce the reference resistance to a median error of $10^{-7}$. |
 | **Fully reproducible** (installable package, executed notebooks, a test suite) | Every number and figure regenerates from a clean clone. |
 
 </details>
