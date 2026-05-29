@@ -1,0 +1,16 @@
+# Core (the punching_shear package)
+numpy
+pandas
+openpyxl
+scikit-learn>=1.1
+scipy
+matplotlib
+
+# Notebooks
+jupyterlab
+nbformat
+nbconvert
+seaborn
+
+# Tests
+pytest

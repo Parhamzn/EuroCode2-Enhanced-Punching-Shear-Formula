@@ -1,0 +1,26 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "punching-shear"
+version = "1.0.0"
+description = "Interpretable ML for the punching-shear resistance of RC flat slabs (corrected, leak-free rebuild)"
+readme = "README.md"
+requires-python = ">=3.9"
+license = { text = "MIT" }
+dependencies = [
+    "numpy",
+    "pandas",
+    "openpyxl",
+    "scikit-learn>=1.1",
+    "scipy",
+    "matplotlib",
+]
+
+[project.optional-dependencies]
+notebooks = ["jupyterlab", "nbformat", "nbconvert", "seaborn", "shap"]
+dev = ["pytest"]
+
+[tool.setuptools]
+packages = ["punching_shear"]
