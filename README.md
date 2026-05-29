@@ -1,5 +1,7 @@
 # EuroCode 2 — Enhanced Punching-Shear Formula
 
+<div align="justify">
+
 An interpretable machine-learning study that benchmarks — and improves on — the
 **Eurocode 2 / DIN EN 1992-1-1** punching-shear design formula for reinforced-concrete
 flat slabs, using **336 published laboratory tests**. It delivers transparent,
@@ -8,7 +10,11 @@ formula under honest validation**, with the methodological rigor (no data leakag
 laboratory-grouped cross-validation, physical-unit error metrics) that data-driven
 attempts in this field usually skip.
 
+</div>
+
 ## What is punching shear? (in plain terms)
+
+<div align="justify">
 
 Many modern buildings use **flat slabs** — flat concrete floors resting directly on
 columns, with no beams. It's economical and gives clean ceilings, but it creates a
@@ -33,20 +39,74 @@ can read and check**, rather than an opaque black box? The short answer here: **
 modestly** — and the winning models are simple closed-form formulas that even
 re-derive the physics already inside Eurocode 2.
 
+</div>
+
+## The Eurocode 2 formula
+
+<div align="justify">
+
+Eurocode 2 (EN 1992-1-1, §6.4) estimates the punching resistance of a flat slab
+*without shear reinforcement* as a **shear stress** $v_{Rd,c}$ acting on a control
+section around the column:
+
+</div>
+
+$$
+v_{Rd,c} \;=\; C_{Rd,c}\,\,k\,\bigl(100\,\rho_{l}\,f_{ck}\bigr)^{1/3} \;+\; k_{1}\,\sigma_{cp}
+$$
+
+| symbol | meaning | value / notes |
+|---|---|---|
+| $v_{Rd,c}$ | punching resistance, expressed as a **stress** [MPa] | the quantity modelled in this project |
+| $C_{Rd,c}$ | empirical calibration coefficient | $=0.18/\gamma_c$; design value $0.12$ (with safety factor $\gamma_c=1.5$) |
+| $k = 1+\sqrt{200/d}\le 2.0$ | size-effect factor ($d$ in mm) | deeper slabs are proportionally weaker |
+| $\rho_{l}\le 0.02$ | longitudinal (flexural) reinforcement ratio | capped at 2 % |
+| $f_{ck}$ | characteristic concrete cylinder strength [MPa] | here $f_{ck}=f_{cm}-8$, clamped to classes C12/15–C90/105 |
+| $k_{1}\,\sigma_{cp}$ | in-plane (prestress/normal) stress term, $k_{1}=0.1$ | **dropped** — no $\sigma_{cp}$ data in the dataset |
+
+<div align="justify">
+
+That stress is turned into a **failure load** through the control perimeter $u_{1}$,
+taken at a distance $2d$ from the column face:
+
+</div>
+
+$$
+V_{Rd} \;=\; v_{Rd,c}\,\cdot\,u_{1}\,\cdot\,d
+$$
+
+<div align="justify">
+
+Since the load is mechanically proportional to the control area $u_{1}d$, this project
+models the **stress** $v = V/(u_{1}d)$ directly rather than the absolute load $V$ —
+which is what separates genuine punching behaviour from a trivial size effect (see
+[Methodology](#methodology--the-choices-that-matter) below).
+
+</div>
+
 ## The question, precisely
 
-The EC2 punching formula carries an apparent safety factor (the genuine mean of
-`V_test/V_Rd` on this data is **2.28**) to absorb the scatter between predicted and
-measured punching strength. Can interpretable ML trained on the same physical
-features shrink that scatter, which features actually drive punching behaviour, and
-does any improvement survive **honest, laboratory-grouped** validation?
+<div align="justify">
+
+The EC2 formula carries an apparent safety factor — the genuine mean of
+$V_{test}/V_{Rd}$ on this data is $\mathbf{2.28}$ — to absorb the scatter between
+predicted and measured punching strength. Can interpretable ML trained on the same
+physical features shrink that scatter, which features actually drive punching
+behaviour, and does any improvement survive **honest, laboratory-grouped**
+validation?
+
+</div>
 
 ## Headline result
 
+<div align="justify">
+
 All 11 models — including the Eurocode 2 baseline — are scored on **identical
-cross-validation folds**, predicting the punching **stress** `v = V/(u₁·d)` [MPa],
+cross-validation folds**, predicting the punching **stress** $v = V/(u_{1}d)$ [MPa],
 with errors in physical units. Two validation protocols tell very different
 stories:
+
+</div>
 
 ![Random vs researcher-held-out cross-validation](assets/fig_leakage.png)
 
@@ -66,8 +126,12 @@ lab leakage.*
 | EC2 (refit `C_Rd,c`) | 0.310 | 0.63 |
 | SVR (poly-3) | 0.655 | −0.90 *(overfits)* |
 
+<div align="justify">
+
 → Random Forest and SVR-RBF beat EC2 (paired Wilcoxon *p* < 1e-8). This *looks*
 like "ML beats Eurocode."
+
+</div>
 
 **Researcher-held-out GroupKFold** (whole labs held out — the honest test of
 generalizing to a *new* experiment):
@@ -81,6 +145,8 @@ generalizing to a *new* experiment):
 | Decision Tree | 0.372 | 0.42 |
 | SVR (poly-3) | 1.40 | −12.7 |
 
+<div align="justify">
+
 → The ranking **collapses**. **No ML model out-generalizes EC2** to a new lab;
 the flexible models (RBF, trees) degrade most. The apparent ML superiority under
 random splits was largely **lab leakage** — with many specimens per researcher, a
@@ -93,6 +159,8 @@ not by the effective depth `d` (which only appears dominant when one wrongly
 predicts absolute *load*). The categorical **column profile contributes essentially
 nothing**, so it could be dropped from future code formulas.
 
+</div>
+
 ![Why model stress, not load](assets/fig_size_effect.png)
 
 *Predicting absolute load (left) just relearns the size effect: load is mechanically
@@ -101,8 +169,12 @@ output — is barely correlated with `d`. That is why this project models stress
 
 ## Methodology — the choices that matter
 
+<div align="justify">
+
 Honestly benchmarking an empirical formula is mostly about not fooling yourself.
 The design decisions that make the comparison trustworthy:
+
+</div>
 
 | Decision | Why it matters |
 |---|---|
@@ -115,6 +187,8 @@ The design decisions that make the comparison trustworthy:
 
 ## Can an *explainable* model beat EC2 — honestly? (research)
 
+<div align="justify">
+
 Since EC2 wins under researcher-held-out CV, the real question is whether an
 **interpretable model that reduces to a neat formula** can beat it on the *honest*
 bar. `scripts/run_formula_models.py` (notebook [`07`](notebooks/07_explainable_formulas.ipynb))
@@ -123,6 +197,8 @@ researcher-held-out folds, and extracts the fitted equations.
 
 **Yes — modestly, and only with the right structure.** Three closed-form models
 beat EC2 under researcher-held-out CV at paired-Wilcoxon *p* < 0.01:
+
+</div>
 
 | Model | grouped RMSE [MPa] | R² | vs EC2 (Wilcoxon) |
 |---|---|---|---|
@@ -137,6 +213,8 @@ beat EC2 under researcher-held-out CV at paired-Wilcoxon *p* < 0.01:
 ![Explainable models vs EC2](assets/fig_explainable.png)
 
 ![Out-of-fold predicted vs measured stress](assets/fig_pred_vs_measured.png)
+
+<div align="justify">
 
 Three findings worth keeping:
 
@@ -159,6 +237,8 @@ land at CoV ≈ 0.14–0.21, comparable to (not dramatically better than) EC2. T
 honest takeaway: *a freed power-law with mechanics-informed features is a tidy,
 slightly-better-than-EC2 design equation; a bigger model is not the lever.*
 
+</div>
+
 ### Further levers tested (`scripts/run_levers.py`, `scripts/run_lever2_pysr.py`)
 
 Four additional levers, each on the researcher-held-out bar (paired Wilcoxon vs EC2):
@@ -170,6 +250,8 @@ Four additional levers, each on the researcher-held-out bar (paired Wilcoxon vs 
 | **1 — aggregate size `dg` as a raw feature** | add `dg` or `d/(16+dg)` to the power-law | **no gain** (n.s. / worse) | — |
 | **4 — glass-box EBM / monotone GAM** | additive shape functions | **n.s. / worse** (R² 0.47–0.52) | additive curves, not 1 line |
 | **2 — PySR direct** (no EC2 anchor) | free symbolic search on d, ρ_l, fck | n.s. | yes |
+
+<div align="justify">
 
 This **sharpens the same lesson**: what beats EC2 is *mechanics-anchored structure*
 — the CSCT size-aggregate form (3) and the EC2-anchored PySR correction (2), both
@@ -185,6 +267,8 @@ known), and the **PySR/grey-box EC2 correction**. All are one-line, code-style
 equations. *Reproduce:* `python scripts/run_levers.py` (levers 1/3/4) and
 `python scripts/run_lever2_pysr.py` (lever 2; needs the PySR Julia backend —
 `pip install -e ".[pysr]"`).
+
+</div>
 
 ## Repository layout
 
@@ -227,26 +311,29 @@ python scripts/run_formula_models.py   # explainable-formula study -> results/  
 jupyter lab notebooks/                 # the narrative, 01 -> 08
 ```
 
+<div align="justify">
+
 The package resolves data paths relative to itself, so notebooks and scripts work
 from a fresh clone without path edits.
 
+</div>
+
 ## Dataset
+
+<div align="justify">
 
 336 published flat-slab punching tests compiled by Dr. Karl Friedrich Siburg.
 Modelling uses five fully-observed features — effective depth `d` [mm], column
 area `col_area` [mm²], reinforcement ratio `rho_l` [%], cylinder strength
 `fcm_cyl` [MPa], and load perimeter `u0_perim` [m] — to predict the punching
 **stress** `v_test` [MPa]. The companion `Data.xlsx` supplies the EC2 control
-area `beta = u₁·d`, so `v = V_test·10⁶/beta`. `Forscher` (source lab) drives the
-grouped CV. `dg`, `fym`, `Esm`, `c2` are dropped (heavily missing). See
+area $\beta = u_{1}d$, so $v = V_{test}\cdot 10^{6}/\beta$. `Forscher` (source lab)
+drives the grouped CV; `dg`, `fym`, `Esm`, `c2` are dropped (heavily missing). The
+EC2 baseline formula and its parameters are defined in
+[The Eurocode 2 formula](#the-eurocode-2-formula). See
 [`data/README.md`](data/README.md).
 
-EC2 reference (resistance stress, without shear reinforcement):
-
-```
-v_Rd,c = C_Rd,c · k · (100·rho_l·f_ck)^(1/3)
-k = 1 + √(200/d) ≤ 2.0,  rho_l ≤ 0.02,  f_ck = fcm − 8 clamped to C12/15…C90/105
-```
+</div>
 
 ## Extending this work
 
