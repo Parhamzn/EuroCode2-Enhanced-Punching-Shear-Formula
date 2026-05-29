@@ -20,6 +20,8 @@ dependencies = [
 
 [project.optional-dependencies]
 notebooks = ["jupyterlab", "nbformat", "nbconvert", "seaborn", "gplearn"]
+explain = ["interpret-core", "pygam"]   # EBM + GAM glass-box models (lever 4)
+pysr = ["pysr"]                         # symbolic regression (lever 2); needs a Julia backend
 dev = ["pytest"]
 
 [tool.setuptools]

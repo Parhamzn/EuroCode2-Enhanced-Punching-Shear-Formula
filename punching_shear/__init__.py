@@ -29,8 +29,14 @@ from .evaluation import (
     load_space_metrics,
 )
 from .models import build_models, build_formula_models
-from .greybox import PowerLawRegressor, EC2FreeExponentRegressor
+from .greybox import (
+    PowerLawRegressor,
+    EC2FreeExponentRegressor,
+    EC2CorrectionRegressor,
+    CSCTBasisRegressor,
+)
 from .features import MechanicsFeatures, engineer
+from .glassbox import GAMRegressor, make_ebm, STRESS_MONOTONE
 
 __all__ = [
     "Dataset",
@@ -52,6 +58,11 @@ __all__ = [
     "build_formula_models",
     "PowerLawRegressor",
     "EC2FreeExponentRegressor",
+    "EC2CorrectionRegressor",
+    "CSCTBasisRegressor",
     "MechanicsFeatures",
     "engineer",
+    "GAMRegressor",
+    "make_ebm",
+    "STRESS_MONOTONE",
 ]

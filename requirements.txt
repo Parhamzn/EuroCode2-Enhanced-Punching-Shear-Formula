@@ -13,5 +13,10 @@ nbconvert
 seaborn
 gplearn      # symbolic regression (notebook 07); needs the sklearn>=1.6 shim in punching_shear.symbolic
 
+# Explainable lever models
+interpret-core   # Explainable Boosting Machine (lever 4)
+pygam            # monotone GAM (lever 4)
+# pysr           # symbolic regression (lever 2) -- needs a Julia backend; pip install separately
+
 # Tests
 pytest

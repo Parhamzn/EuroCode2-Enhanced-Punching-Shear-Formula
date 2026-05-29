@@ -25,3 +25,10 @@ Thumbs.db
 
 # Claude Code local session/memory data
 .claude/
+
+# Generated analysis artifacts (regenerate: python scripts/run_analysis.py
+# and python scripts/run_formula_models.py)
+/results/
+
+# PySR symbolic-regression run artifacts
+/outputs/

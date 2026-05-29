@@ -139,6 +139,52 @@ class EC2FreeExponentRegressor(BaseEstimator, RegressorMixin):
                 f"[MPa]   (EC2: C=0.18, p=1/3)")
 
 
+class CSCTBasisRegressor(BaseEstimator, RegressorMixin):
+    """Muttoni / fib-MC2010 Critical-Shear-Crack-style closed form.
+
+        v = C * (rho_l[%] * fck)^p / (1 + lam * d / (dg0 + dg))
+
+    The size effect is carried by an **aggregate-size-dependent** denominator
+    (CSCT: aggregate interlock weakens as d grows relative to the crack roughness
+    set by the max aggregate size dg) instead of EC2's ``k = 1+sqrt(200/d)``. The
+    coefficients (C, p, lam) are fit by least squares; this tests whether the CSCT
+    size-aggregate term beats EC2's size factor. Requires a ``dg`` column.
+    """
+
+    def __init__(self, dg0=16.0, apply_caps=True):
+        self.dg0 = dg0
+        self.apply_caps = apply_caps
+
+    def _parts(self, X):
+        d = _col(X, "d")
+        rho = _col(X, "rho_l")
+        fck = _fck(_col(X, "fcm_cyl"))
+        dg = _col(X, "dg")
+        if self.apply_caps:
+            rho = np.minimum(rho, RHO_CAP_PCT)
+        return d, rho * fck, d / (self.dg0 + dg)
+
+    def fit(self, X, y):
+        _, rf, ddg = self._parts(X)
+
+        def model(_, C, p, lam):
+            return C * rf ** p / (1.0 + lam * ddg)
+
+        (self.C_, self.p_, self.lam_), _ = curve_fit(
+            model, np.zeros_like(ddg), np.asarray(y, dtype=float),
+            p0=[0.5, 1.0 / 3.0, 0.5], maxfev=20000,
+        )
+        return self
+
+    def predict(self, X):
+        _, rf, ddg = self._parts(X)
+        return self.C_ * rf ** self.p_ / (1.0 + self.lam_ * ddg)
+
+    def formula_(self) -> str:
+        return (f"v = {self.C_:.4f} * (100*rho_frac*fck)^{self.p_:.3f} / "
+                f"(1 + {self.lam_:.4f}*d/(16+dg))   [MPa]")
+
+
 class EC2CorrectionRegressor(BaseEstimator, RegressorMixin):
     """Grey-box: v = v_EC2 · K, with K a power-law correction on features EC2 ignores.
 

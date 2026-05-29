@@ -121,12 +121,32 @@ land at CoV ≈ 0.14–0.21, comparable to (not dramatically better than) EC2. T
 honest takeaway: *a freed power-law with mechanics-informed features is a tidy,
 slightly-better-than-EC2 design equation; a bigger model is not the lever.*
 
-**Levers tried / recommended next:** ✓ stress target, ✓ mechanics-informed &
-dimensionless features, ✓ free-exponent power-law, ✓ grey-box EC2 correction
-factor, ✓ symbolic regression. Not yet: add aggregate size `dg` (CSCT crack-width
-proxy `d/(16+dg)`) with imputation; try **PySR** (Julia backend, optimises
-constants — stronger than gplearn) for the correction factor; a monotonic
-Explainable Boosting Machine for shape vetting.
+### Further levers tested (`scripts/run_levers.py`, `scripts/run_lever2_pysr.py`)
+
+Four additional levers, each on the researcher-held-out bar (paired Wilcoxon vs EC2):
+
+| Lever | What | Honest verdict vs EC2 | Closed form? |
+|---|---|---|---|
+| **3 — CSCT form** | `v = C·(100ρ_l·fck)^p / (1 + λ·d/(16+dg))` (size via aggregate denominator) | **beats EC2** on the `dg`-complete subset (R² 0.64 vs 0.60, **p = 0.02**) | yes, 1 line |
+| **2 — PySR × EC2 correction** | `v = v_EC2 · [14.74/d + 0.851]` (correction discovered by PySR) | **beats EC2** (R² 0.64 vs 0.62, **p = 0.011**) | yes, 1 line |
+| **1 — aggregate size `dg` as a raw feature** | add `dg` or `d/(16+dg)` to the power-law | **no gain** (n.s. / worse) | — |
+| **4 — glass-box EBM / monotone GAM** | additive shape functions | **n.s. / worse** (R² 0.47–0.52) | additive curves, not 1 line |
+| **2 — PySR direct** (no EC2 anchor) | free symbolic search on d, ρ_l, fck | n.s. | yes |
+
+This **sharpens the same lesson**: what beats EC2 is *mechanics-anchored structure*
+— the CSCT size-aggregate form (3) and the EC2-anchored PySR correction (2), both
+neat one-line formulas. What does **not** help is adding raw signal without
+structure (1) or adding model flexibility (4: EBM/GAM, like RF/SVR earlier, only
+tie or trail EC2). Notably the CSCT fit again returns a material exponent
+`p ≈ 0.33` — the cube root keeps re-appearing. Gains stay modest (R² +0.03–0.06),
+consistent with the literature ceiling (CoV ≈ 0.14–0.21).
+
+**Net:** the strongest explainable challengers to EC2 are the **free-exponent
+power-law** (full data, p = 2e-5), the **CSCT aggregate-size form** (where `dg` is
+known), and the **PySR/grey-box EC2 correction**. All are one-line, code-style
+equations. *Reproduce:* `python scripts/run_levers.py` (levers 1/3/4) and
+`python scripts/run_lever2_pysr.py` (lever 2; needs the PySR Julia backend —
+`pip install -e ".[pysr]"`).
 
 ## Repository layout
 
@@ -138,14 +158,17 @@ sciml-punching-shear/
 │   ├── evaluation.py          #   physical-unit metrics (stress & load), shared folds, paired tests
 │   ├── models.py              #   11-model zoo + explainable/formula model set
 │   ├── features.py            #   mechanics-informed feature engineering
-│   ├── greybox.py             #   power-law, EC2 free-exponent, EC2 x correction (closed-form)
-│   └── symbolic.py            #   gplearn symbolic regression (+ sklearn>=1.6 shim)
+│   ├── greybox.py             #   power-law, EC2 free-exponent, EC2 x correction, CSCT form
+│   ├── glassbox.py            #   EBM + monotone GAM (lever 4)
+│   └── symbolic.py            #   gplearn + PySR symbolic regression (+ sklearn>=1.6 shim)
 ├── scripts/
 │   ├── run_analysis.py        # main study -> results/ tables + figures  (~9 min)
 │   ├── run_formula_models.py  # explainable/formula models vs EC2 -> results/formula_* (~3 min)
+│   ├── run_levers.py          # levers 1/3/4 (aggregate dg, CSCT, EBM/GAM) vs EC2
+│   ├── run_lever2_pysr.py     # lever 2 (PySR correction); needs the Julia backend
 │   └── build_notebooks.py     # regenerate the notebooks from the package
 ├── notebooks/                 # clean, executed notebooks (01-07)
-├── results/                   # generated CSV tables + PNG figures (committed)
+├── results/                   # generated CSV tables + PNG figures (git-ignored; run the scripts)
 ├── tests/                     # pytest sanity/guard suite
 ├── data/                      # Daten_Siburg.xlsx (raw, +Forscher), Data.xlsx (+control area)
 ├── references/                # DIN EN 1992-1-1 (Eurocode 2) + Siburg 2014 thesis
