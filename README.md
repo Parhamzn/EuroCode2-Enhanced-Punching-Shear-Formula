@@ -25,6 +25,12 @@ cross-validation folds**, predicting the punching **stress** `v = V/(u₁·d)` [
 with errors in physical units. Two validation protocols tell very different
 stories:
 
+![Random vs researcher-held-out cross-validation](assets/fig_leakage.png)
+
+*Under random K-fold (blue) the flexible ML models beat EC2; with whole laboratories
+held out (orange) the ranking collapses and EC2 leads — the apparent ML win was
+lab leakage.*
+
 **Random repeated 5×5 K-fold** (what the original study effectively used):
 
 | Model | CV RMSE [MPa] | R² |
@@ -65,6 +71,12 @@ original study predicted absolute *load*). The categorical **column profile
 contributes essentially nothing**, so it could be dropped from future code
 formulas — the one original conclusion that survives the correction.
 
+![Why model stress, not load](assets/fig_size_effect.png)
+
+*The original study's "`d` dominates" headline is an artifact of predicting absolute
+load (left): load is mechanically proportional to the control area `u₁·d`. The
+shear **stress** (right) — EC2's actual output — is barely correlated with `d`.*
+
 ## What changed and why
 
 | # | Original study | Problem | Rebuild |
@@ -99,6 +111,10 @@ beat EC2 under researcher-held-out CV at paired-Wilcoxon *p* < 0.01:
 | **EC2 (refit C_Rd,c)** | 0.310 | 0.61 | — |
 | Random Forest (+features) | 0.302–0.314 | 0.59–0.63 | n.s. |
 | Symbolic regression (gplearn) | 0.347 | 0.46 | n.s. |
+
+![Explainable models vs EC2](assets/fig_explainable.png)
+
+![Out-of-fold predicted vs measured stress](assets/fig_pred_vs_measured.png)
 
 Three findings worth keeping:
 
@@ -166,8 +182,10 @@ sciml-punching-shear/
 │   ├── run_formula_models.py  # explainable/formula models vs EC2 -> results/formula_* (~3 min)
 │   ├── run_levers.py          # levers 1/3/4 (aggregate dg, CSCT, EBM/GAM) vs EC2
 │   ├── run_lever2_pysr.py     # lever 2 (PySR correction); needs the Julia backend
+│   ├── make_readme_figures.py # regenerate the figures in assets/
 │   └── build_notebooks.py     # regenerate the notebooks from the package
-├── notebooks/                 # clean, executed notebooks (01-07)
+├── notebooks/                 # clean, executed notebooks (01-08)
+├── assets/                    # committed figures used in this README
 ├── results/                   # generated CSV tables + PNG figures (git-ignored; run the scripts)
 ├── tests/                     # pytest sanity/guard suite
 ├── data/                      # Daten_Siburg.xlsx (raw, +Forscher), Data.xlsx (+control area)
@@ -185,7 +203,7 @@ pip install -e ".[notebooks,dev]"      # package + jupyter/seaborn + pytest
 pytest -q                              # 13 guard tests (~25 s)
 python scripts/run_analysis.py         # main study -> results/  (~9 min, nested CV)
 python scripts/run_formula_models.py   # explainable-formula study -> results/  (~3 min)
-jupyter lab notebooks/                 # the narrative, 01 -> 07
+jupyter lab notebooks/                 # the narrative, 01 -> 08
 ```
 
 The package resolves data paths relative to itself, so notebooks and scripts work

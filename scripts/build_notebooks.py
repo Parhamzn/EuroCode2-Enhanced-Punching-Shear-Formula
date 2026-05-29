@@ -333,6 +333,79 @@ nb07 = nb(
        "a bigger model."),
 )
 
+# ---------------------------------------------------------------------------
+# 08 — Lever comparison: can anything beat EC2, and the winning formulas
+# ---------------------------------------------------------------------------
+nb08 = nb(
+    md("# 08 · Levers to beat EC2 — comparison & winning formulas\n\n"
+       "Four levers were tried to beat Eurocode 2 while staying explainable, each "
+       "on the **researcher-held-out** bar (paired Wilcoxon vs EC2):\n\n"
+       "1. aggregate size `dg` as a raw feature · 2. PySR symbolic correction · "
+       "3. CSCT aggregate-size form · 4. glass-box EBM / monotone GAM.\n\n"
+       "This notebook visualizes all of them. Numbers come from `results/` — run "
+       "`scripts/run_formula_models.py`, `scripts/run_levers.py` and "
+       "`scripts/run_lever2_pysr.py` first."),
+    code(BOOT + "\n"
+         "def rd(name):\n"
+         "    p = RESULTS/name\n"
+         "    return pd.read_csv(p) if p.exists() else None\n"
+         "WIN, EC2C, NS = '#2a9d4a', '#d1495b', '#9aa0a6'"),
+    md("## Full-data explainable models vs EC2\n"
+       "Bars colored by paired-Wilcoxon significance (green = significantly beats EC2)."),
+    code("g = rd('formula_metrics_grouped.csv').set_index('model')\n"
+         "sig = rd('formula_paired_vs_ec2.csv').set_index('a')\n"
+         "ec2 = g.loc['EC2 (refit C_Rd,c)','rmse_mean']\n"
+         "beats = {m:(sig.loc[m,'p_value']<0.05 and sig.loc[m,'median_abs_err_diff']<0) for m in sig.index}\n"
+         "o = g.drop(index=['Symbolic regression']).sort_values('rmse_mean')\n"
+         "col=[EC2C if m=='EC2 (refit C_Rd,c)' else (WIN if beats.get(m) else NS) for m in o.index]\n"
+         "fig,ax=plt.subplots(figsize=(8.5,4.5))\n"
+         "ax.barh([m.replace(' (refit C_Rd,c)','').replace(' feats','') for m in o.index], o.rmse_mean, xerr=o.rmse_ci95, color=col)\n"
+         "ax.axvline(ec2,color=EC2C,ls='--'); ax.invert_yaxis(); ax.set_xlabel('researcher-held-out RMSE [MPa]'); ax.grid(alpha=.3,axis='x'); ax.set_title('Explainable models vs EC2 (full data)'); plt.tight_layout(); plt.show()\n"
+         "display(g[['rmse_mean','r2_mean']].round(3).join(pd.Series(beats,name='beats_EC2')))"),
+    md("## Levers 1 & 3 — aggregate size `dg` / CSCT form (204-row `dg` subset)\n"
+       "EC2 is re-fit on the *same* subset for a fair comparison."),
+    code("d = rd('levers_dg_grouped.csv').set_index('model').sort_values('rmse_mean')\n"
+         "e = d.loc['EC2 (refit)','rmse_mean']\n"
+         "col=[EC2C if m=='EC2 (refit)' else (WIN if d.loc[m,'rmse_mean']<e else NS) for m in d.index]\n"
+         "fig,ax=plt.subplots(figsize=(8.5,3.6)); ax.barh(d.index, d.rmse_mean, xerr=d.rmse_ci95, color=col)\n"
+         "ax.axvline(e,color=EC2C,ls='--'); ax.invert_yaxis(); ax.set_xlabel('RMSE [MPa] (dg subset)'); ax.grid(alpha=.3,axis='x'); ax.set_title('Levers 1 & 3 on the dg-complete subset'); plt.tight_layout(); plt.show()\n"
+         "display(d[['rmse_mean','r2_mean']].round(3))"),
+    md("**Lever 3 (CSCT form) beats EC2** here; **lever 1 (dg as a raw power-law term) does not** — "
+       "structure matters, raw signal doesn't."),
+    md("## Lever 4 — glass-box EBM & monotone GAM (full data)"),
+    code("b = rd('levers_glassbox_grouped.csv').set_index('model').sort_values('rmse_mean')\n"
+         "e = b.loc['EC2 (refit)','rmse_mean']\n"
+         "col=[EC2C if m=='EC2 (refit)' else (WIN if b.loc[m,'rmse_mean']<e else NS) for m in b.index]\n"
+         "fig,ax=plt.subplots(figsize=(8.5,3.2)); ax.barh(b.index, b.rmse_mean, xerr=b.rmse_ci95, color=col)\n"
+         "ax.axvline(e,color=EC2C,ls='--'); ax.invert_yaxis(); ax.set_xlabel('RMSE [MPa]'); ax.grid(alpha=.3,axis='x'); ax.set_title('Lever 4: additive glass-box models'); plt.tight_layout(); plt.show()\n"
+         "display(b[['rmse_mean','r2_mean']].round(3))"),
+    md("EBM and GAM only **tie or trail** EC2 — flexibility is not the lever (their value is "
+       "shape-reading, in `results/levers_gam_shapes.csv`)."),
+    md("## Lever 2 — PySR symbolic correction (grouped out-of-fold)"),
+    code("p = rd('levers_pysr_oof.csv')\n"
+         "if p is not None:\n"
+         "    p = p.set_index('model')\n"
+         "    display(p[['rmse','r2'] + [c for c in ['p_vs_ec2','beats_ec2'] if c in p.columns]].round(4))\n"
+         "else:\n"
+         "    print('Run scripts/run_lever2_pysr.py (needs the PySR Julia backend).')"),
+    md("## The winning closed-form equations"),
+    code("for f in ['formulas.txt','levers_formulas.txt']:\n"
+         "    t = RESULTS/f\n"
+         "    if t.exists(): print('#',f,'\\n'+t.read_text())"),
+    md("## Verdict\n\n"
+       "Two extra levers yield **explainable, one-line formulas that significantly beat "
+       "EC2** under researcher-held-out CV:\n\n"
+       "- **CSCT aggregate-size form** (where `dg` is known): "
+       "`v = C·(100·ρ_l·fck)^p / (1 + λ·d/(16+dg))`, p≈0.33 (p=0.02);\n"
+       "- **PySR × EC2 correction**: `v = v_EC2·[14.74/d + 0.851]` (p=0.011).\n\n"
+       "Together with the **free-exponent power-law** "
+       "`v = 1.38·d^(−0.19)·ρ_l^0.33·fck^0.31` (p=2e-5, full data), the story is "
+       "consistent: **mechanics-anchored structure beats both raw signal (lever 1) and "
+       "model flexibility (lever 4, and RF/SVR before).** The cube-root keeps "
+       "re-appearing. Gains are real but modest (R² +0.03–0.06) — the literature "
+       "ceiling (CoV ≈ 0.14–0.21), not a model-capacity limit."),
+)
+
 NOTEBOOKS = {
     "01_data_overview.ipynb": nb01,
     "02_eurocode_baseline.ipynb": nb02,
@@ -341,6 +414,7 @@ NOTEBOOKS = {
     "05_tree_models.ipynb": nb05,
     "06_model_comparison.ipynb": nb06,
     "07_explainable_formulas.ipynb": nb07,
+    "08_lever_comparison.ipynb": nb08,
 }
 
 if __name__ == "__main__":
