@@ -55,8 +55,8 @@ nb01 = nb(
     md("# 01 · Data overview & the target problem\n\n"
        "The Siburg compilation: **336** flat-slab punching tests from **55** labs. "
        "This notebook does the EDA *and* establishes the single most important "
-       "decision in the rebuild: **what to predict.**\n\n"
-       "The original study predicted the absolute failure **load** `V_test` [MN]. "
+       "modelling decision: **what to predict.**\n\n"
+       "A naive approach predicts the absolute failure **load** `V_test` [MN]. "
        "But punching capacity is `V = v · u₁ · d` — load is mechanically "
        "proportional to the control area `u₁·d`. So regressing load on the "
        "effective depth `d` mostly relearns a trivial size effect. We instead "
@@ -65,7 +65,7 @@ nb01 = nb(
     md("### Features and targets"),
     code("display(ds.X.describe().T.round(2))\n"
          "print('Primary target  v_test [MPa]:', ds.y_stress.describe()[['min','50%','max']].round(3).to_dict())\n"
-         "print('Original target V_test [MN]:', ds.y_load.describe()[['min','50%','max']].round(3).to_dict())"),
+         "print('Load target (size-confounded) V_test [MN]:', ds.y_load.describe()[['min','50%','max']].round(3).to_dict())"),
     md("### Missingness (why we model only 5 features)\n"
        "`dg`, `fym`, `Esm`, `c2` are heavily missing, so they are dropped; the five "
        "modelling features are fully observed."),
@@ -182,8 +182,8 @@ nb03 = nb(
 nb04 = nb(
     md("# 04 · Support Vector Regression\n\n"
        "Linear, degree-3 polynomial and RBF kernels. Hyper-parameters are tuned by "
-       "`GridSearchCV` **on the training split only** (never on the test set, unlike "
-       "the original), then evaluated once on the held-out 30%."),
+       "`GridSearchCV` **on the training split only** (never on the test set), then "
+       "evaluated once on the held-out 30%."),
     code(BOOT),
     code("from sklearn.model_selection import train_test_split\n"
          "from sklearn.base import clone\n"
@@ -213,7 +213,7 @@ nb04 = nb(
 nb05 = nb(
     md("# 05 · Decision tree, random forest & feature importance\n\n"
        "Tuned CART and a Random Forest, and the **permutation feature importance** "
-       "that overturns the original study's headline."),
+       "that reveals the true drivers of punching stress."),
     code(BOOT),
     code("from sklearn.model_selection import train_test_split\n"
          "from sklearn.base import clone\n"
@@ -226,18 +226,17 @@ nb05 = nb(
          "    m=ps.regression_metrics(yte, gs.predict(Xte)); m['model']=name; m['best']=gs.best_params_; out.append(m)\n"
          "display(pd.DataFrame(out)[['model','rmse','r2','mape_pct','best']])"),
     md("### Permutation importance on the STRESS target\n"
-       "Original study (load target): *“`d` dominates, column profile is irrelevant.”* "
-       "On the corrected stress target:"),
+       "A naive load-target model concludes *“`d` dominates, column profile is "
+       "irrelevant.”* On the stress target the picture is different:"),
     code("imp = pd.read_csv(RESULTS/'feature_importance.csv')\n"
          "display(imp.round(4))\n"
          "plt.figure(figsize=(7,3)); plt.barh(imp.feature, imp.importance, xerr=imp['std'], color='#4a8')\n"
          "plt.gca().invert_yaxis(); plt.xlabel('permutation importance (Δ MSE)'); plt.title('Random Forest, stress target'); plt.tight_layout(); plt.show()"),
     md("**Takeaway.** On the stress target the dominant features are **`rho_l`** "
        "(reinforcement ratio) and **`fcm_cyl`** (concrete strength) — the actual "
-       "mechanical drivers — while `d` is minor. The original *“`d` dominates”* "
-       "conclusion was a load/size-effect artifact. However, the column-geometry "
-       "features (`col_area`) remain negligible, so the original conclusion that "
-       "**column profile can be dropped** does survive the correction."),
+       "mechanical drivers — while `d` is minor; the *“`d` dominates”* impression is "
+       "a load/size-effect artifact. The column-geometry features (`col_area`) are "
+       "negligible, so **column profile can safely be dropped** from a code formula."),
 )
 
 # ---------------------------------------------------------------------------
@@ -248,7 +247,7 @@ nb06 = nb(
        "The payoff. All 11 models (incl. the EC2 baseline) were scored on **identical "
        "folds**, with metrics in physical units (MPa). We compare two validation "
        "protocols:\n\n"
-       "1. **Random** repeated 5×5 K-fold — what the original study effectively used.\n"
+       "1. **Random** repeated 5×5 K-fold — naive random splitting.\n"
        "2. **Researcher-held-out** GroupKFold — whole labs held out, the honest test "
        "of generalization to a *new* experiment."),
     code(BOOT),
@@ -269,7 +268,7 @@ nb06 = nb(
          "display(sig.round(4))"),
     md("## The lesson\n\n"
        "- Under **random** K-fold, Random Forest and SVR-RBF clearly beat EC2 "
-       "(Wilcoxon p < 1e-8) — this reproduces the original *“ML beats Eurocode”* story.\n"
+       "(Wilcoxon p < 1e-8) — the familiar *“ML beats Eurocode”* story.\n"
        "- Under **researcher-held-out** CV the ranking **collapses**: **EC2 is the "
        "best model**, every ML model falls back to the linear baseline, and SVR-RBF "
        "and the trees degrade sharply.\n\n"
